@@ -14,9 +14,8 @@ def health():
 async def collect_sensor_data(req: Request):
     try:
         body = await req.json()
-        #save the data in a file 
         with open("sensor_data.json", "a") as f:
-            json.dump(body, f)
+            f.write(json.dumps(body) + "\n")
 
         print("Data received: ", body)
         return {"message": "Sensor data received successfully", "Data : " : body}
@@ -25,5 +24,8 @@ async def collect_sensor_data(req: Request):
 
 @app.get("/api/sensor")
 def get_sensor_data():
-    with open("sensor_data.json", "r") as f:
-        return json.load(f)
+    try:
+        with open("sensor_data.json", "r") as f:
+            return [json.loads(line) for line in f if line.strip()]
+    except FileNotFoundError:
+        return ['No file found']
