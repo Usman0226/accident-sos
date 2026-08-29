@@ -1,0 +1,2 @@
+{"sensor_type": "mpu6050_imu_6dof", "device_id": "VEH_002", "timestamp": 1788017401114, "readings": [6.8, 4.2, 1.9, 145.2, 32.4, 18.1], "total_g": 8.7, "status": "IMPACT_DETECTED"}
+{"sensor_type": "mpu6050_imu_6dof", "device_id": "VEH_001", "timestamp": 1788017404114, "readings": [0.08, 0.14, 0.99, 4.8, 1.2, 0.6], "total_g": 1.01, "status": "NORMAL_STREAM"}

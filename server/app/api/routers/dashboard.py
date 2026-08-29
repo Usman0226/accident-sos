@@ -16,7 +16,7 @@ def get_devices(db: Session = Depends(get_db)):
     result = []
     for d in devices:
         status = d.status
-        if status == "ok" and (current_time - d.last_heartbeat_time) > 30000:
+        if status == "ok" and d.last_heartbeat_time and (current_time - d.last_heartbeat_time) > 30000:
             status = "unreachable"
             
         result.append({
@@ -25,6 +25,7 @@ def get_devices(db: Session = Depends(get_db)):
             "last_heartbeat_time": d.last_heartbeat_time,
             "last_gps_lat": d.last_gps_lat,
             "last_gps_lon": d.last_gps_lon,
+            "last_speed_kmph": d.last_speed_kmph,
             "battery_pct": d.battery_pct
         })
     return {"devices": result}

@@ -1,7 +1,7 @@
 import json
 from sqlalchemy.orm import Session
 from app.models.domain import DeviceState, EventLog
-from app.models.schemas import HeartbeatEvent, ImpactEvent
+from app.models.schemas import SensorDataPayload
 
 class StateManager:
     def __init__(self, db: Session):
@@ -16,7 +16,7 @@ class StateManager:
         )
         self.db.add(log_entry)
 
-    def process_heartbeat(self, event: HeartbeatEvent):
+    def process_heartbeat(self, event: SensorDataPayload):
         device = self.db.query(DeviceState).filter(DeviceState.device_id == event.device_id).first()
         
         if not device:
@@ -29,14 +29,14 @@ class StateManager:
         device.last_heartbeat_time = event.timestamp
         device.last_gps_lat = event.gps_lat
         device.last_gps_lon = event.gps_lon
-        device.last_speed_kmph = event.speed_kmph
+        device.last_speed_kmph = event.gps_speed_kmph
         device.battery_pct = event.battery_pct
         
         self._log_event(event.device_id, "heartbeat", event.model_dump(), event.timestamp)
         self.db.commit()
         return device
 
-    def process_impact(self, event: ImpactEvent):
+    def process_impact(self, event: SensorDataPayload):
         device = self.db.query(DeviceState).filter(DeviceState.device_id == event.device_id).first()
         is_new_event = False
         
