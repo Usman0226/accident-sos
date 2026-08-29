@@ -1,0 +1,10 @@
+"confidence": 0.94,
+"severity": "SEVERE",
+"features": {
+"peak_acceleration": 8.7,
+"peak_jerk": 54.2,
+"peak_angular_velocity": 3.7,
+"velocity_change": 2.3,
+"orientation_change": 64.0,
+"post_impact_motion": 0.06
+}
