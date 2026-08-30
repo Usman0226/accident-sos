@@ -9,7 +9,10 @@ import {
   Copy, 
   ShieldCheck,
   Clock,
-  Radio
+  Radio,
+  AlertTriangle,
+  Eye,
+  Ambulance
 } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 import { ActionSwapButton } from "@/components/motion/action-swap"
@@ -21,29 +24,7 @@ export function EmergencyHeroAlert() {
   const [copied, setCopied] = useState(false)
 
   if (!activeAlert) {
-    return (
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full rounded-2xl border border-border bg-card p-6 shadow-sm flex items-center justify-between"
-      >
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-accent/15 text-accent flex items-center justify-center shrink-0">
-            <ShieldCheck className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-foreground tracking-tight">All Riders Safe · No Active Emergencies</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Connected sensor nodes are actively monitoring for impact events and anomalies.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-medium">
-            <Radio className="h-3.5 w-3.5 animate-pulse" />
-            Live Guard Active
-          </span>
-        </div>
-      </motion.div>
-    )
+    return null
   }
 
   const isSevere = activeAlert.severity === "CRITICAL" || activeAlert.severity === "SEVERE"
@@ -75,8 +56,14 @@ export function EmergencyHeroAlert() {
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isSevere ? "bg-destructive" : "bg-amber-500"}`}></span>
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isSevere ? "bg-destructive" : "bg-amber-500"}`}></span>
           </span>
-          <span className="font-bold tracking-wide uppercase">
-            {activeAlert.status === "SOS_SENT" ? "🚨 Active SOS Triggered" : activeAlert.status === "ACKNOWLEDGED" ? "👁️ Alert Acknowledged" : "🚑 Emergency Services Dispatched"}
+          <span className="font-bold tracking-wide uppercase flex items-center gap-1.5">
+            {activeAlert.status === "SOS_SENT" ? (
+              <><AlertTriangle className="h-4 w-4" /> Active SOS Triggered</>
+            ) : activeAlert.status === "ACKNOWLEDGED" ? (
+              <><Eye className="h-4 w-4" /> Alert Acknowledged</>
+            ) : (
+              <><Ambulance className="h-4 w-4" /> Emergency Services Dispatched</>
+            )}
           </span>
           <span className="opacity-40">|</span>
           <span>Event {activeAlert.event_id}</span>

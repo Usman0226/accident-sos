@@ -172,6 +172,8 @@ export function HistoryView() {
           renderExpandedRow={renderExpandedRow}
           height={500}
           rowHeight={64}
+          reorderable
+          resizable
         />
       </div>
     </div>

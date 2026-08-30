@@ -7,13 +7,21 @@ import { IncidentLifecycleTimeline } from "./IncidentLifecycleTimeline"
 import { HardwareFleetMonitor } from "./HardwareFleetMonitor"
 import { IncidentHistoryList } from "./IncidentHistoryList"
 import { SimulationControlBar } from "./SimulationControlBar"
+import { IncidentDetailModal } from "./IncidentDetailModal"
+import { useState } from "react"
 import { MapView } from "./views/MapView"
 import { SensorTelemetryView } from "./views/SensorTelemetryView"
 import { FleetView } from "./views/FleetView"
 import { HistoryView } from "./views/HistoryView"
 
 export function DashboardOverview() {
-  const { activeTab } = useDashboard()
+  const { activeTab, selectedDeviceId, setSelectedDeviceId } = useDashboard()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleIncidentSelect = (deviceId: string) => {
+    setSelectedDeviceId(deviceId)
+    setIsModalOpen(true)
+  }
 
   // Render dedicated view if selected in sidebar
   if (activeTab === "map") {
@@ -46,19 +54,23 @@ export function DashboardOverview() {
 
       {/* Main High-Density Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Column (7 cols): Sensor Fusion Telemetry & Lifecycle State Machine */}
+        {/* Left Column (7 cols): Incident History & Active Incidents */}
         <div className="lg:col-span-7 space-y-5">
-          <SensorTelemetryGrid />
-          <IncidentLifecycleTimeline />
+          <IncidentHistoryList onSelect={handleIncidentSelect} />
+          <LiveLocationRadar />
         </div>
 
-        {/* Right Column (5 cols): Live GPS Radar, Fleet Status, and Past History */}
+        {/* Right Column (5 cols): Fleet Status */}
         <div className="lg:col-span-5 space-y-5">
-          <LiveLocationRadar />
           <HardwareFleetMonitor />
-          <IncidentHistoryList />
         </div>
       </div>
+
+      <IncidentDetailModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        deviceId={selectedDeviceId} 
+      />
     </div>
   )
 }

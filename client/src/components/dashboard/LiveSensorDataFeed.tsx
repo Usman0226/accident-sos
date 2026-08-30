@@ -11,10 +11,13 @@ import {
   Code2, 
   Copy, 
   CheckCircle2, 
-  Radio
+  Radio,
+  AlertTriangle,
+  WifiOff
 } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 import { AnimatedNumber } from "@/components/motion/animated-number"
+import { Tabs, TabsList, TabsTrigger } from "@/components/motion/tabs"
 
 export function LiveSensorDataFeed() {
   const { devices, selectedDeviceId, setSelectedDeviceId, selectedTelemetry } = useDashboard()
@@ -44,30 +47,29 @@ export function LiveSensorDataFeed() {
         </div>
 
         {/* Device Switcher Pills */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-background border border-border overflow-x-auto">
-          {devices.map((d) => {
-            const isSelected = d.device_id === selectedDeviceId
-            const isSos = d.status === "sos_confirmed"
+        <Tabs value={selectedDeviceId || ""} onValueChange={setSelectedDeviceId} variant="segment">
+          <TabsList className="bg-background border border-border">
+            {devices.map((d) => {
+              const isSelected = d.device_id === selectedDeviceId
+              const isSos = d.status === "sos_confirmed"
 
-            return (
-              <button
-                key={d.device_id}
-                onClick={() => setSelectedDeviceId(d.device_id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
-                  isSelected
-                    ? isSos
-                      ? "bg-destructive text-white shadow-sm"
-                      : "bg-primary text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                <span className={`h-2 w-2 rounded-full ${isSos ? "bg-white animate-pulse" : isSelected ? "bg-white" : "bg-accent"}`} />
-                <span>{d.device_id}</span>
-                <span className="opacity-70 text-[10px]">({d.rider_name?.split(" ")[0]})</span>
-              </button>
-            )
-          })}
-        </div>
+              return (
+                <TabsTrigger
+                  key={d.device_id}
+                  value={d.device_id}
+                  className="text-xs px-2.5 py-1 min-h-7"
+                  indicatorClassName={isSos ? "bg-destructive" : ""}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className={`h-2 w-2 rounded-full ${isSos ? "bg-white animate-pulse" : isSelected ? "bg-white" : "bg-accent"}`} />
+                    <span>{d.device_id}</span>
+                    <span className="opacity-70 text-[10px]">({d.rider_name?.split(" ")[0]})</span>
+                  </div>
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Active Node Live Status Strip */}
@@ -91,14 +93,14 @@ export function LiveSensorDataFeed() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          <span className={`px-2.5 py-1 flex items-center gap-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
             isAccident 
               ? "bg-destructive text-white animate-pulse" 
               : selectedTelemetry.status === "UNREACHABLE"
                 ? "bg-muted text-muted-foreground"
                 : "bg-accent/15 text-accent"
           }`}>
-            {isAccident ? "🚨 SOS CRASH CONFIRMED" : selectedTelemetry.status === "UNREACHABLE" ? "⚠️ Offline" : "✓ Normal Safe Riding"}
+            {isAccident ? <><AlertTriangle className="h-3.5 w-3.5" /> SOS CRASH CONFIRMED</> : selectedTelemetry.status === "UNREACHABLE" ? <><WifiOff className="h-3.5 w-3.5" /> Offline</> : <><CheckCircle2 className="h-3.5 w-3.5" /> Normal Safe Riding</>}
           </span>
 
           <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border flex items-center gap-1">

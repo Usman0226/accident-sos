@@ -970,8 +970,8 @@ export function AnimatedSidebarMenuSubButton({
 
   const interactiveClassName = cn(
     "flex min-h-8 w-full min-w-0 items-center gap-2 rounded-lg px-2 text-left text-xs outline-none",
-    "text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
-    "focus-visible:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring",
+    "text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground",
+    "focus-visible:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring",
     isActive && "bg-muted/70 text-foreground",
     disabled && "cursor-not-allowed opacity-40",
     className,
@@ -1071,7 +1071,7 @@ export function AnimatedSidebarMenuButton({
         <motion.span
           layoutId={context.layoutId}
           transition={context.reduce ? { duration: 0 } : SPRING_LAYOUT}
-          className="absolute inset-0 rounded-xl bg-muted"
+          className="absolute inset-0 rounded-xl bg-foreground/5"
         />
       ) : null}
       {icon ? (
@@ -1128,8 +1128,8 @@ export function AnimatedSidebarMenuButton({
 
   const interactiveClassName = cn(
     "relative flex min-h-9 w-full min-w-0 items-center gap-2.5 overflow-hidden rounded-xl px-3 text-left text-sm font-medium outline-none",
-    "text-muted-foreground transition-colors hover:text-foreground",
-    "focus-visible:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring",
+    "text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground",
+    "focus-visible:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring",
     isActive && "text-foreground",
     disabled && "cursor-not-allowed opacity-40",
     className,

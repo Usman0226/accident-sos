@@ -6,10 +6,7 @@ export function IncidentLifecycleTimeline() {
   const { activeAlert } = useDashboard()
 
   const timeline = activeAlert?.timeline || [
-    { time: "T+0.0s", title: "Impact Detected", description: "8.7G peak shockwave recorded on MPU6050", status: "done" },
-    { time: "T+0.8s", title: "Sensor Fusion Analysis", description: "Crash confirmed with 94% confidence rating", status: "done" },
-    { time: "T+2.0s", title: "SOS Broadcast Fired", description: "Emergency alert sent via GSM SIM800L & Cloud API", status: "done" },
-    { time: "T+1.5m", title: "Contact Dashboard Live", description: "Waiting for emergency contact response", status: "current" },
+    { time: "--", title: "Incident Archived / Resolved", description: "This incident has been resolved and logged to the history database.", status: "done" },
   ]
 
   return (

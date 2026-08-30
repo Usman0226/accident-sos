@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
-import { MapPin, Navigation, Compass, ExternalLink, Radio, Building2 } from "lucide-react"
+import { MapPin, Navigation, Compass, ExternalLink, Radio, Building2, AlertTriangle } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 
 // Custom marker icons
@@ -97,7 +97,7 @@ export function MapView() {
             >
               <Popup>
                 <div className="p-1 space-y-1 text-xs">
-                  <div className="font-bold text-red-600">🚨 Severe Impact Incident</div>
+                  <div className="font-bold text-red-600 flex items-center gap-1 justify-center"><AlertTriangle className="h-3.5 w-3.5" /> Severe Impact Incident</div>
                   <div className="font-medium text-black">Rahul Sharma · KTM Duke 390</div>
                   <div className="text-gray-600 text-[11px]">{activeAlert?.location.address}</div>
                   <div className="text-gray-500 font-mono text-[10px]">{activeLat.toFixed(4)}° N, {activeLon.toFixed(4)}° E</div>

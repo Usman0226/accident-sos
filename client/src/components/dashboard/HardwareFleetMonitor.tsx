@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { Cpu, Battery, Radio } from "lucide-react"
+import { Cpu, Battery, Radio, AlertTriangle, WifiOff, Activity } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 import { AnimatedNumber } from "@/components/motion/animated-number"
 
@@ -66,14 +66,14 @@ export function HardwareFleetMonitor() {
                   </span>
                 </div>
 
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
+                <span className={`px-2 py-0.5 flex items-center gap-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
                   isSos 
                     ? "bg-destructive text-white animate-pulse" 
                     : isOffline 
                       ? "bg-muted text-muted-foreground" 
                       : "bg-accent/15 text-accent"
                 }`}>
-                  {isSos ? "🚨 SOS ACTIVE" : isOffline ? "Offline" : "Healthy"}
+                  {isSos ? <><AlertTriangle className="h-3 w-3" /> SOS ACTIVE</> : isOffline ? <><WifiOff className="h-3 w-3" /> Offline</> : <><Activity className="h-3 w-3" /> Healthy</>}
                 </span>
               </div>
             </motion.div>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Cpu, Battery, Radio, Send, CheckCircle2, Clock } from "lucide-react"
+import { Cpu, Battery, Radio, Send, CheckCircle2, Clock, AlertTriangle, WifiOff, Activity } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 import { api, type SensorDataPayload } from "@/services/api"
 import { AnimatedNumber } from "@/components/motion/animated-number"
@@ -93,14 +93,14 @@ export function FleetView() {
                   </div>
                 </div>
 
-                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                <span className={`px-2.5 py-0.5 flex items-center gap-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                   isSos 
                     ? "bg-destructive text-white animate-pulse" 
                     : isOffline 
                       ? "bg-muted text-muted-foreground" 
                       : "bg-accent/15 text-accent"
                 }`}>
-                  {isSos ? "🚨 SOS ACTIVE" : isOffline ? "Offline" : "Healthy"}
+                  {isSos ? <><AlertTriangle className="h-3.5 w-3.5" /> SOS ACTIVE</> : isOffline ? <><WifiOff className="h-3.5 w-3.5" /> Offline</> : <><Activity className="h-3.5 w-3.5" /> Healthy</>}
                 </span>
               </div>
 

@@ -2,7 +2,7 @@ import { motion } from "framer-motion"
 import { History, CheckCircle2, ShieldAlert, Radio, BellRing } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 
-export function IncidentHistoryList() {
+export function IncidentHistoryList({ onSelect }: { onSelect?: (deviceId: string) => void }) {
   const { events } = useDashboard()
 
   const formatTimestamp = (ts: number) => {
@@ -41,7 +41,8 @@ export function IncidentHistoryList() {
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="p-3 rounded-xl border border-border bg-background/80 flex items-center justify-between gap-3 text-xs"
+                onClick={() => onSelect?.(evt.device_id)}
+                className={`p-3 rounded-xl border border-border bg-background/80 flex items-center justify-between gap-3 text-xs ${onSelect ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
@@ -67,9 +68,6 @@ export function IncidentHistoryList() {
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-foreground">{evt.device_id}</span>
-                      <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                        EVT-{evt.id}
-                      </span>
                       <span className="text-[11px] font-medium text-foreground uppercase tracking-wider">
                         · {evt.type.replace("_", " ")}
                       </span>

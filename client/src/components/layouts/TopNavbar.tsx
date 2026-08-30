@@ -9,7 +9,7 @@ interface TopNavbarProps {
 }
 
 export function TopNavbar({ trigger }: TopNavbarProps) {
-  const { activeAlert, isBackendConnected } = useDashboard()
+  const { activeAlert } = useDashboard()
   const [isMuted, setIsMuted] = useState(audioAlert.getMuted())
 
   const toggleSound = () => {
@@ -29,11 +29,8 @@ export function TopNavbar({ trigger }: TopNavbarProps) {
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${activeAlert ? "bg-destructive" : "bg-accent"}`}></span>
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeAlert ? "bg-destructive" : "bg-accent"}`}></span>
           </span>
-          <span className="text-xs font-semibold text-foreground tracking-tight">
-            {activeAlert ? "EMERGENCY ACTIVE" : "SYSTEM OPERATIONAL"}
-          </span>
-          <span className="text-muted-foreground text-xs hidden md:inline">
-            · {isBackendConnected ? "FastAPI Live Polling (2.5s)" : "Standalone Simulation"}
+          <span className="text-xs font-bold text-foreground tracking-widest uppercase">
+            AccidentSOS
           </span>
         </div>
       </div>

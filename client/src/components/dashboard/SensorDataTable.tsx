@@ -9,11 +9,13 @@ import {
   ShieldAlert, 
   BellRing,
   MapPin,
-  Battery,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle,
+  WifiOff
 } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 import { AnimatedNumber } from "@/components/motion/animated-number"
+import { Tabs, TabsList, TabsTrigger } from "@/components/motion/tabs"
 
 export function SensorDataTable() {
   const { devices, events, selectedDeviceId, setSelectedDeviceId, refreshData, isBackendConnected } = useDashboard()
@@ -63,14 +65,14 @@ export function SensorDataTable() {
         const isOffline = device.status === "unreachable"
         return (
           <div className="flex items-center gap-2.5">
-            <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+            <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${
               isSos ? "bg-destructive text-white" : isOffline ? "bg-muted text-muted-foreground" : "bg-accent/15 text-accent"
             }`}>
               <Radio className="h-4 w-4" />
             </div>
             <div>
-              <span className="font-bold text-foreground block">{device.rider_name || device.device_id}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">{device.device_id}</span>
+              <span className="font-bold text-sm text-foreground block">{device.rider_name || device.device_id}</span>
+              <span className="font-mono text-xs text-muted-foreground">{device.device_id}</span>
             </div>
           </div>
         )
@@ -83,14 +85,14 @@ export function SensorDataTable() {
         const isSos = device.status === "sos_confirmed"
         const isOffline = device.status === "unreachable"
         return (
-          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
             isSos 
               ? "bg-destructive text-white animate-pulse" 
               : isOffline 
                 ? "bg-muted text-muted-foreground" 
                 : "bg-accent/15 text-accent"
           }`}>
-            {isSos ? "🚨 SOS CRASH" : isOffline ? "Offline" : "✓ Safe Riding"}
+            {isSos ? <><AlertTriangle className="h-3.5 w-3.5" /> SOS CRASH</> : isOffline ? <><WifiOff className="h-3.5 w-3.5" /> Offline</> : <><CheckCircle2 className="h-3.5 w-3.5" /> Safe Riding</>}
           </span>
         )
       }
@@ -102,7 +104,7 @@ export function SensorDataTable() {
         const isOffline = device.status === "unreachable"
         const speed = device.last_speed_kmph || (isOffline ? 0.0 : 42.0)
         return (
-          <div className="font-mono text-xs font-bold text-foreground">
+          <div className="font-mono text-sm font-bold text-foreground">
             <AnimatedNumber value={speed} format={(v) => `${v.toFixed(1)} km/h`} />
           </div>
         )
@@ -116,10 +118,10 @@ export function SensorDataTable() {
         const impactG = isSos ? 8.70 : 1.01
         return (
           <div className="space-y-0.5">
-            <span className={`font-mono text-xs font-bold block ${isSos ? "text-destructive" : "text-foreground"}`}>
+            <span className={`font-mono text-sm font-bold block ${isSos ? "text-destructive" : "text-foreground"}`}>
               {impactG.toFixed(2)} G Total
             </span>
-            <span className="text-[10px] text-muted-foreground font-mono block">
+            <span className="text-xs text-muted-foreground font-mono block">
               {isSos ? "Ax:+6.80 Ay:+4.20 Az:+1.90" : "Ax:+0.08 Ay:+0.14 Az:+0.99"}
             </span>
           </div>
@@ -137,10 +139,10 @@ export function SensorDataTable() {
         const leanAngle = isSos ? 64.0 : (speed > 0 ? 12.5 : 2.1)
         return (
           <div className="space-y-0.5">
-            <span className="font-mono text-xs text-foreground block">
+            <span className="font-mono text-sm text-foreground block">
               {gyroDelta.toFixed(1)}°/s
             </span>
-            <span className={`text-[10px] font-medium block ${leanAngle > 50 ? "text-destructive" : "text-muted-foreground"}`}>
+            <span className={`text-xs font-medium block ${leanAngle > 50 ? "text-destructive" : "text-muted-foreground"}`}>
               Lean: {leanAngle.toFixed(1)}° {leanAngle > 50 ? "(Rollover)" : ""}
             </span>
           </div>
@@ -152,64 +154,25 @@ export function SensorDataTable() {
       header: "GPS Coordinates",
       cell: (device) => (
         <div className="space-y-0.5">
-          <span className="font-mono text-xs text-foreground block">
+          <span className="font-mono text-sm text-foreground block">
             {device.last_gps_lat ? `${device.last_gps_lat.toFixed(4)}° N, ${device.last_gps_lon?.toFixed(4)}° E` : "No GPS Lock"}
           </span>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-            <MapPin className="h-3 w-3 text-primary" />
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5 text-primary" />
             {device.last_gps_lat ? "3D RTK Fix (8 Sats)" : "Searching..."}
           </span>
         </div>
       )
-    },
-    {
-      key: "battery",
-      header: "Battery",
-      cell: (device) => (
-        <div className="flex items-center gap-1 text-xs font-mono font-semibold">
-          <Battery className={`h-3.5 w-3.5 ${device.battery_pct < 20 ? "text-destructive" : "text-accent"}`} />
-          <span>{device.battery_pct || 85}%</span>
-        </div>
-      )
-    },
-    {
-      key: "action",
-      header: "Action",
-      align: "right",
-      cell: (device) => {
-        const isSelected = device.device_id === selectedDeviceId
-        return (
-          <button
-            onClick={() => setSelectedDeviceId(device.device_id)}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-              isSelected 
-                ? "bg-primary text-white" 
-                : "bg-secondary hover:bg-secondary/80 text-foreground border border-border"
-            }`}
-          >
-            {isSelected ? "Active Focus" : "Select Node"}
-          </button>
-        )
-      }
     }
   ], [selectedDeviceId, setSelectedDeviceId])
 
   const eventColumns = useMemo<TableColumn<any>[]>(() => [
-    {
-      key: "id",
-      header: "Event ID",
-      width: "100px",
-      cell: (evt) => (
-        <span className="font-mono text-xs font-bold text-foreground">
-          EVT-{evt.id}
-        </span>
-      )
-    },
+
     {
       key: "device_id",
-      header: "Device Node",
+      header: "Device",
       cell: (evt) => (
-        <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded border border-border text-foreground font-semibold">
+        <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded border border-border text-foreground font-semibold">
           {evt.device_id}
         </span>
       )
@@ -223,11 +186,11 @@ export function SensorDataTable() {
         const isAck = evt.type === "alert_acknowledged"
         return (
           <div className="flex items-center gap-1.5">
-            {isImpact ? <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> :
-             isSos ? <BellRing className="h-3.5 w-3.5 text-amber-500" /> :
-             isAck ? <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> :
-             <Radio className="h-3.5 w-3.5 text-primary" />}
-            <span className="font-semibold text-xs text-foreground uppercase">
+            {isImpact ? <ShieldAlert className="h-4 w-4 text-destructive" /> :
+             isSos ? <BellRing className="h-4 w-4 text-amber-500" /> :
+             isAck ? <CheckCircle2 className="h-4 w-4 text-accent" /> :
+             <Radio className="h-4 w-4 text-primary" />}
+            <span className="font-semibold text-sm text-foreground uppercase">
               {evt.type.replace("_", " ")}
             </span>
           </div>
@@ -243,7 +206,7 @@ export function SensorDataTable() {
         const isSos = evt.type === "sos_dispatch"
         const isAck = evt.type === "alert_acknowledged"
         return (
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
             isImpact ? "bg-destructive text-white animate-pulse" :
             isSos ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" :
             isAck ? "bg-accent/15 text-accent" : "bg-muted text-muted-foreground"
@@ -260,7 +223,7 @@ export function SensorDataTable() {
         const payload = (evt.payload || {}) as Record<string, any>
         const isImpact = evt.type === "impact"
         return (
-          <span className={`font-mono text-xs font-bold ${isImpact ? "text-destructive" : "text-foreground"}`}>
+          <span className={`font-mono text-sm font-bold ${isImpact ? "text-destructive" : "text-foreground"}`}>
             {typeof payload.impact_g === "number" ? `${payload.impact_g.toFixed(2)}G` : (payload.total_g ? `${payload.total_g.toFixed(2)}G` : "1.01G")}
           </span>
         )
@@ -272,7 +235,7 @@ export function SensorDataTable() {
       cell: (evt) => {
         const payload = (evt.payload || {}) as Record<string, any>
         return (
-          <span className="font-mono text-xs text-foreground">
+          <span className="font-mono text-sm text-foreground">
             {typeof payload.gyro_x === "number" ? `${payload.gyro_x.toFixed(1)}°/s` : "4.8°/s"}
           </span>
         )
@@ -284,7 +247,7 @@ export function SensorDataTable() {
       cell: (evt) => {
         const payload = (evt.payload || {}) as Record<string, any>
         return (
-          <span className="font-mono text-[11px] text-foreground">
+          <span className="font-mono text-sm text-foreground">
             {payload.gps_lat ? `${Number(payload.gps_lat).toFixed(4)}°, ${Number(payload.gps_lon).toFixed(4)}°` : "Recorded"}
           </span>
         )
@@ -294,7 +257,7 @@ export function SensorDataTable() {
       key: "timestamp",
       header: "Timestamp",
       cell: (evt) => (
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="font-mono text-sm text-muted-foreground">
           {formatTime(evt.timestamp)}
         </span>
       )
@@ -305,7 +268,7 @@ export function SensorDataTable() {
       align: "right",
       cell: () => (
         <button className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground">
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-5 w-5" />
         </button>
       )
     }
@@ -365,28 +328,16 @@ export function SensorDataTable() {
         {/* Search & Mode Switcher Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
           {/* Mode Tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-background border border-border">
-            <button
-              onClick={() => setViewMode("nodes")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                viewMode === "nodes"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              All Live Nodes ({devices.length})
-            </button>
-            <button
-              onClick={() => setViewMode("events")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                viewMode === "events"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              Ingested Event Log ({events.length})
-            </button>
-          </div>
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "nodes" | "events")} variant="segment">
+            <TabsList className="bg-muted border border-border">
+              <TabsTrigger value="nodes" className="text-[11px] px-3 py-1 min-h-6">
+                All Live Nodes ({devices.length})
+              </TabsTrigger>
+              <TabsTrigger value="events" className="text-[11px] px-3 py-1 min-h-6">
+                Ingested Event Log ({events.length})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {/* Search Box */}
           <div className="relative flex-1 max-w-xs">
@@ -412,6 +363,8 @@ export function SensorDataTable() {
             height={500}
             rowHeight={64}
             selectedRowIds={selectedDeviceId ? [selectedDeviceId] : []}
+            reorderable
+            resizable
           />
         </div>
       )}
@@ -426,6 +379,8 @@ export function SensorDataTable() {
             renderExpandedRow={renderEventExpandedRow}
             height={500}
             rowHeight={64}
+            reorderable
+            resizable
           />
         </div>
       )}

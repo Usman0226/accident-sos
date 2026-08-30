@@ -94,7 +94,7 @@ export function Sidebar() {
                   <AnimatedSidebarMenuItem key={item.id}>
                     <AnimatedSidebarMenuButton 
                       isActive={isActive}
-                      icon={<Icon className={isActive ? "text-primary" : "text-muted-foreground"} />}
+                      icon={<Icon className={`h-4 w-4 stroke-[2px] ${isActive ? "text-primary" : "text-muted-foreground/70"}`} />}
                       badge={
                         item.badge ? (
                           <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold ${item.badgeColor}`}>
@@ -104,7 +104,9 @@ export function Sidebar() {
                       }
                       onSelect={() => setActiveTab(item.id)}
                     >
-                      {item.label}
+                      <span className={isActive ? "font-semibold text-foreground" : "font-medium text-muted-foreground/80"}>
+                        {item.label}
+                      </span>
                     </AnimatedSidebarMenuButton>
                   </AnimatedSidebarMenuItem>
                 )

@@ -9,6 +9,8 @@
 #include <DHT.h>
 
 #include <math.h>
+#include "config.h"         // EEPROM-backed device configuration
+#include "provisioning.h"  // SoftAP + HTTP setup portal
 // WIFI
 const char* WIFI_SSID     = "sos-alert";
 const char* WIFI_PASSWORD = "12345678";
@@ -18,12 +20,9 @@ const char* SERVER_URL =
 // VEHICLE
 const char* VEHICLE_ID = "VEHICLE-001";
 // SIM900A / GSM
-// Emergency recipients.
-const char* EMERGENCY_NUMBERS[] = {
-  "9441578782",
-  "9123456789" // Add more contacts here
-};
-const int NUM_EMERGENCY_CONTACTS = sizeof(EMERGENCY_NUMBERS) / sizeof(EMERGENCY_NUMBERS[0]);
+// Emergency contacts are loaded at runtime from persistent config (EEPROM).
+// Use getEmergencyContact(0..2) and getEmergencyContactCount() -- see config.h.
+// DO NOT redeclare a second array here; one source of truth is enforced.
 
 // SMS text.
 const char* SOS_SMS_TEXT =
@@ -62,6 +61,8 @@ DHT            dht(DHT_PIN, DHT_TYPE);
 Adafruit_MPU6050 mpu;
 
 bool mpuAvailable = false;
+bool simAvailable = false;   // Set by initializeSIM900A(); read by /status endpoint
+float batteryPct  = 100.0f;  // Stub -- no ADC measurement yet; returned by /status
 // BLOCK 1 — SLIDING WINDOW RING BUFFER
 // Stores the last 2 seconds of sensor samples at 50 Hz.
 // Every temporal feature is computed from this buffer.
@@ -234,6 +235,7 @@ void readDHT11()
 // SYSTEM STATE
 enum SystemState
 {
+  PROVISIONING,        // SoftAP + HTTP setup portal active
   SAFE,
   MANUAL_COUNTDOWN,
   ACCIDENT_COUNTDOWN,
@@ -761,14 +763,16 @@ bool sendSOSSMS()
 
   bool allSent = true;
 
-  for (int i = 0; i < NUM_EMERGENCY_CONTACTS; i++)
+  int numContacts = getEmergencyContactCount();
+  for (int i = 0; i < numContacts; i++)
   {
+    const char* num = getEmergencyContact(i);
     Serial.print("SENDING TO: ");
-    Serial.println(EMERGENCY_NUMBERS[i]);
+    Serial.println(num);
 
     flushSIM900();
     sim900.print("AT+CMGS=\"");
-    sim900.print(EMERGENCY_NUMBERS[i]);
+    sim900.print(num);
     sim900.println("\"");
 
     if (!waitForSIM900Response(">", 5000))
@@ -800,14 +804,16 @@ bool makeSOSCall()
 
   bool allCalled = true;
 
-  for (int i = 0; i < NUM_EMERGENCY_CONTACTS; i++)
+  int numContacts = getEmergencyContactCount();
+  for (int i = 0; i < numContacts; i++)
   {
+    const char* num = getEmergencyContact(i);
     Serial.print("CALLING: ");
-    Serial.println(EMERGENCY_NUMBERS[i]);
+    Serial.println(num);
 
     flushSIM900();
     sim900.print("ATD");
-    sim900.print(EMERGENCY_NUMBERS[i]);
+    sim900.print(num);
     sim900.println(";");
 
     unsigned long start = millis();
@@ -848,6 +854,73 @@ bool makeSOSCall()
   return allCalled;
 }
 
+// SEND TEST SOS (declared in provisioning.h)
+// Sends a clearly-labelled test SMS to all configured contacts.
+// MUST NOT create an accident event or modify any accident/SOS state.
+bool sendTestSOSMessage()
+{
+  if (!GSM_ENABLED)
+  {
+    Serial.println(F("GSM DISABLED -- test SMS skipped"));
+    return false;
+  }
+  if (getEmergencyContactCount() == 0)
+  {
+    Serial.println(F("NO CONTACTS -- test SMS skipped"));
+    return false;
+  }
+
+  Serial.println();
+  Serial.println(F("================================"));
+  Serial.println(F("SENDING TEST SMS"));
+  Serial.println(F("================================"));
+
+  flushSIM900();
+  sim900.println("AT+CMGF=1");
+  if (!waitForSIM900Response("OK", 3000))
+  {
+    Serial.println(F("SMS MODE FAILED -- cannot send test"));
+    return false;
+  }
+
+  // Build test message with vehicle name from config
+  String testMsg = F("[TEST ALERT] AccidentSOS device ");
+  testMsg += deviceConfig.vehicle_name;
+  testMsg += F(" is configured and active. This is a TEST ONLY -- no emergency has occurred. -AccidentSOS");
+
+  bool anySent = false;
+  int count = getEmergencyContactCount();
+
+  for (int i = 0; i < count; i++)
+  {
+    const char* num = getEmergencyContact(i);
+    if (num[0] == '\0') continue;
+
+    Serial.print(F("TEST SMS TO: ")); Serial.println(num);
+
+    flushSIM900();
+    sim900.print("AT+CMGS=\"");
+    sim900.print(num);
+    sim900.println("\"");
+
+    if (!waitForSIM900Response(">", 5000))
+    {
+      Serial.println(F("SMS PROMPT NOT RECEIVED"));
+      continue;
+    }
+
+    sim900.print(testMsg);
+    sim900.write(26);  // Ctrl+Z -- send
+
+    bool sent = waitForSIM900Response("OK", 10000);
+    Serial.println(sent ? F("TEST SMS SENT") : F("TEST SMS FAILED"));
+    if (sent) anySent = true;
+    delay(1000);
+  }
+
+  return anySent;
+}
+
 void initializeSIM900A()
 {
   if (!GSM_ENABLED)
@@ -866,10 +939,13 @@ void initializeSIM900A()
 
   if (!sim900Test())
   {
+    simAvailable = false;
     Serial.println("WARNING: SIM900A IS NOT RESPONDING");
     Serial.println("Check power, GND, TX/RX and baud rate.");
     return;
   }
+
+  simAvailable = true;  // AT command acknowledged -- module present
 
   flushSIM900();
   sim900.println("ATE0");
@@ -1319,29 +1395,37 @@ void setup()
   delay(1000);
 
   Serial.println();
-  Serial.println("====================================");
-  Serial.println(" SMART VEHICLE SOS SYSTEM");
-  Serial.println(" ESP8266 NODEMCU");
-  Serial.println(" WIFI + HTTPS + RENDER");
-  Serial.println(" WITH FEATURE EXTRACTION & QUEUE");
-  Serial.println("====================================");
+  Serial.println(F("===================================="));
+  Serial.println(F(" SMART VEHICLE SOS SYSTEM"));
+  Serial.println(F(" ESP8266 NODEMCU + SIM900A"));
+  Serial.println(F("===================================="));
 
   randomSeed(analogRead(A0));
 
-  // --- Buttons ---
+  // --- GPIO (must be first -- isBootHoldForSetup() reads GPIO16) ---
   pinMode(SOS_BUTTON,    INPUT_PULLUP);
   pinMode(CANCEL_BUTTON, INPUT_PULLUP);
-
-  // --- Buzzer ---
   pinMode(BUZZER, OUTPUT);
   buzzerOff();
+
+  // --- Persistent configuration ---
+  initConfig();
+  loadDeviceConfig();
+
+  // --- Boot-hold check (after pinMode) ---
+  // Hold SOS_BUTTON (D0/GPIO16) for 5 s at power-on to force setup mode.
+  // GPIO16 used intentionally -- GPIO2 (D4) is a strapping pin and holding
+  // it LOW at boot puts ESP8266 into firmware download mode.
+  bool forceSetup = isBootHoldForSetup();
+  if (forceSetup)
+    Serial.println(F("FORCED SETUP MODE via 5-second boot-hold"));
 
   // --- I2C ---
   Wire.begin(SDA_PIN, SCL_PIN);
 
   // --- DHT11 ---
   dht.begin();
-  Serial.println("DHT11 INITIALIZED (D3 / GPIO0)");
+  Serial.println(F("DHT11 INITIALIZED (D3 / GPIO0)"));
 
   // --- Startup tests ---
   buzzerTest();
@@ -1349,19 +1433,17 @@ void setup()
   // --- Queue init ---
   initQueue();
 
-  // --- SIM900A ---
+  // --- SIM900A (init in both modes -- needed for test SMS in provisioning) ---
   initializeSIM900A();
 
-  // --- MPU6050 ---
+  // --- MPU6050 (init in both modes -- needed for /status in provisioning) ---
   Serial.println();
-  Serial.println("CHECKING MPU6050...");
+  Serial.println(F("CHECKING MPU6050..."));
 
   if (mpu.begin())
   {
     mpuAvailable = true;
-
-    Serial.println("MPU6050 CONNECTED");
-
+    Serial.println(F("MPU6050 CONNECTED"));
     mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
     mpu.setGyroRange(MPU6050_RANGE_500_DEG);
     mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
@@ -1369,53 +1451,77 @@ void setup()
   else
   {
     mpuAvailable = false;
-
-    Serial.println("MPU6050 NOT FOUND");
-    Serial.println("SIMULATED SENSOR DATA ENABLED");
-    Serial.println("ACCIDENT DETECTION DISABLED");
+    Serial.println(F("MPU6050 NOT FOUND -- SIMULATED DATA ENABLED"));
+    Serial.println(F("ACCIDENT DETECTION DISABLED"));
   }
 
-  // --- WiFi ---
+  // --- PROVISIONING MODE ---
+  // Enter if device has never been configured OR if boot-hold was detected.
+  // Normal Wi-Fi (STA mode) is NOT started in provisioning mode.
+  if (!isConfigured() || forceSetup)
+  {
+    Serial.println();
+    Serial.println(F("========================================"));
+    Serial.println(F("DEVICE NOT CONFIGURED -- PROVISIONING MODE"));
+    Serial.println(F("Connect phone to Wi-Fi: ACCIDENT-SOS-VEHICLE-001"));
+    Serial.println(F("Then open browser: http://192.168.4.1"));
+    Serial.println(F("========================================"));
+    startProvisioningMode(VEHICLE_ID);
+    currentState = PROVISIONING;
+    return;   // Skip normal-mode initialisation entirely
+  }
+
+  // --- NORMAL OPERATING MODE ---
+  Serial.println();
+  Serial.println(F("DEVICE CONFIGURED -- NORMAL OPERATION"));
+
   connectWiFi();
 
   // --- Configuration summary ---
   Serial.println();
-  Serial.println("====================================");
-  Serial.println("SERVER CONFIGURATION");
-  Serial.println("====================================");
-  Serial.println("PROTOCOL: HTTPS");
-  Serial.print("SERVER: ");   Serial.println(SERVER_URL);
-  Serial.println("QUEUE:   UP TO 3 EVENTS, MAX 5 RETRIES");
-  Serial.println("RETRY:   EVERY 30 SECONDS");
-  Serial.println("SIM900A: ENABLED");
-  Serial.print("CONTACTS:");
-  for (int i = 0; i < NUM_EMERGENCY_CONTACTS; i++) {
-    Serial.print(" ");
-    Serial.print(EMERGENCY_NUMBERS[i]);
+  Serial.println(F("===================================="));
+  Serial.println(F("SERVER CONFIGURATION"));
+  Serial.println(F("===================================="));
+  Serial.println(F("PROTOCOL: HTTPS"));
+  Serial.print(F("SERVER: "));   Serial.println(SERVER_URL);
+  Serial.println(F("QUEUE:   UP TO 3 EVENTS, MAX 5 RETRIES"));
+  Serial.println(F("RETRY:   EVERY 30 SECONDS"));
+  Serial.print(F("VEHICLE: ")); Serial.println(deviceConfig.vehicle_name);
+  Serial.print(F("CONTACTS:"));
+  for (int i = 0; i < getEmergencyContactCount(); i++)
+  {
+    Serial.print(F(" ")); Serial.print(getEmergencyContact(i));
   }
   Serial.println();
-  Serial.println("GPS:     NOT CONNECTED (FALLBACK)");
-  Serial.println("BATTERY: STUB 100%");
+  Serial.println(F("GPS:     NOT CONNECTED (FALLBACK)"));
+  Serial.println(F("BATTERY: STUB 100%"));
   Serial.println();
-  Serial.println("====================================");
-  Serial.println("SYSTEM READY");
-  Serial.println("====================================");
+  Serial.println(F("===================================="));
+  Serial.println(F("SYSTEM READY"));
+  Serial.println(F("===================================="));
   Serial.println();
-  Serial.println("SOS BUTTON  = D0 / GPIO16");
-  Serial.println("CANCEL      = D4 / GPIO2");
-  Serial.println("BUZZER      = D7 / GPIO13");
-  Serial.println("SIM900A RX  = D5 / GPIO14");
-  Serial.println("SIM900A TX  = D6 / GPIO12");
-  Serial.println("MPU6050     = D2/D1 I2C");
-  Serial.println(mpuAvailable ? "MPU STATUS  = REAL SENSOR" : "MPU STATUS  = SIMULATED");
+  Serial.println(F("SOS BUTTON  = D0 / GPIO16 (hold 5 s at boot = setup mode)"));
+  Serial.println(F("CANCEL      = D4 / GPIO2"));
+  Serial.println(F("BUZZER      = D7 / GPIO13"));
+  Serial.println(F("SIM900A RX  = D5 / GPIO14"));
+  Serial.println(F("SIM900A TX  = D6 / GPIO12"));
+  Serial.println(F("MPU6050     = D2/D1 I2C"));
+  Serial.println(mpuAvailable ? F("MPU STATUS  = REAL SENSOR") : F("MPU STATUS  = SIMULATED"));
   Serial.println();
-  Serial.println("Press SOS button to test.");
-  Serial.println("Monitoring for accidents...");
+  Serial.println(F("Press SOS button to test."));
+  Serial.println(F("Monitoring for accidents..."));
   Serial.println();
 }
 // LOOP
 void loop()
 {
+  // --- PROVISIONING MODE: drives AP, DNS, HTTP; skips accident detection ---
+  if (currentState == PROVISIONING)
+  {
+    handleProvisioningClient();
+    return;
+  }
+
   // -- Always tick the sensor buffer (Block 1) --
   tickSensorBuffer();
 
