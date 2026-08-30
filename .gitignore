@@ -1,4 +1,6 @@
 venv
-docs
 .ai-session/
 .agents/
+__pycache__/
+*.py[cod]
+.pytest_cache/

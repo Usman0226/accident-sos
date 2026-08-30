@@ -1,0 +1,27 @@
+{
+  "active_version": "v1",
+  "previous_version": null,
+  "versions": {
+    "v1": {
+      "version": "v1",
+      "created_at": "2026-08-30T08:13:47.935099+00:00",
+      "dataset_hash": "8b7796fbab458470",
+      "metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 0.9960400747718159
+      },
+      "is_active": true,
+      "promoted_at": "2026-08-30T08:13:47.951309+00:00",
+      "feature_importances": {
+        "impact_g": 0.5515487197739259,
+        "gyro_delta": 0.06661699886490315,
+        "Speed_kmh": 0.3818342813611709
+      },
+      "description": "Calibrated Random Forest IMU Pipeline v1 with augmented dataset",
+      "model_path": "D:\\accident-sos\\ml\\registry\\v1\\model.pkl"
+    }
+  },
+  "last_updated": "2026-08-30T08:13:47.951599+00:00"
+}
