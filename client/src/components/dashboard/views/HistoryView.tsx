@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Table, TableColumn } from "@/components/motion/table"
+import { Table, type TableColumn } from "@/components/motion/table"
 import { History, Filter, Download, AlertTriangle, Radio, ShieldCheck, CheckCircle2, ChevronDown } from "lucide-react"
 import { useDashboard } from "@/context/DashboardContext"
 

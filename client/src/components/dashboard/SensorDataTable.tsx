@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { Table, TableColumn } from "@/components/motion/table"
+import { Table, type TableColumn } from "@/components/motion/table"
 import { 
   Database, 
   Radio, 
