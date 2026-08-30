@@ -3,7 +3,7 @@
 > **An edge-first accident detection and emergency-response platform that detects potential accidents locally, confirms them using backend ML, provides a human cancellation window, supports manual SOS, communicates through independent channels, and routes confirmed incidents toward appropriate responders.**
 
 **Problem Statement:** I-NXS-002 Accident Detection & Automated SOS Alert  
-**Team ID & Name:** INX-`039` - `π (Pi)`  
+**Team ID & Name:** INX-`039` - `π(Pi)`  
 **Domain:** IoT & Smart Mobility  
 
 ### 🛠️ Tech Stack
@@ -59,7 +59,7 @@
   - [29. Testing & Validation](#29-testing--validation)
   - [31. Security & Privacy](#31-security--privacy)
   - [32. Known Limitations](#32-known-limitations)
-  - [33. Production Evolution](#33-production-evolution)
+  - [33. Production Evolution & ERSS-112 Alignment](#33-production-evolution--erss-112-alignment)
   - [34. Final Engineering Position](#34-final-engineering-position)
 ---
 
@@ -157,6 +157,10 @@ The second problem is what the multi-sensor pipeline addresses.
 
 # 3. What We Built
 
+<div align="center">
+  <img src="./assets/IMG_01.png" alt="What We Built - AI-Powered Accident SOS System Architecture & Ecosystem" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); max-width: 100%; height: auto; margin: 16px 0;" />
+</div>
+
 The project combines:
 
 - ESP8266 edge controller
@@ -208,32 +212,47 @@ The solution is organized into **11 major modules**.
 
 # 5. Module Interaction Map
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                         VEHICLE SIDE                         │
-│                                                              │
-│  Sensors → Edge Screening → Features → ML Confirmation      │
-│                     ↑                  │                     │
-│                     │                  ▼                     │
-│                 Manual SOS        Response Decision          │
-│                     │                  │                     │
-│                     └──────────┬───────┘                     │
-│                                ▼                             │
-│                        SOS / Communication                   │
-└───────────────────────────────┬──────────────────────────────┘
-                                │
-                                ▼
-┌──────────────────────────────────────────────────────────────┐
-│                         PLATFORM SIDE                        │
-│                                                              │
-│ Event Ingestion → Incident Manager → Response Policy         │
-│                                      ↓                       │
-│                           Responder Orchestrator              │
-│                                      ↓                       │
-│                            Notification / Tracking            │
-│                                      ↓                       │
-│                              Dashboard                        │
-└──────────────────────────────────────────────────────────────┘
+The system is architected primarily as a **fully autonomous, zero-touch accident detection and dispatch pipeline**, supplemented by a **human override and manual distress mechanism**:
+
+- **Autonomous Detection & Escalation (Default Flow):**
+  1. Sensors continuously acquire data at 50 Hz without human intervention.
+  2. The ESP8266 automatically screens for abnormal G-force and rotational spikes in a rolling buffer.
+  3. Validated triggers automatically extract temporal features and dispatch a locked telemetry packet to the backend.
+  4. Backend ML confirms the accident, classifies severity, and automatically initiates the emergency escalation sequence.
+  5. If the occupant is unconscious or incapacitated, the 10-second countdown expires and automatically triggers multi-channel emergency dispatch.
+
+- **Human Override & Manual Entry:**
+  - **Manual SOS:** Occupants can manually press the SOS button to request immediate aid (e.g., medical distress, engine fire) even if no impact occurred.
+  - **Cancellation Window:** If a bump was minor or non-threatening, the occupant can press Cancel during the 10-second buzzer countdown to prevent false dispatches.
+
+```mermaid
+flowchart TB
+    subgraph VEHICLE["VEHICLE EDGE (Autonomous Sensing & Screening)"]
+        direction TB
+        SENSORS["Sensors (MPU6050, Temp/Hum, Vibration)"] -->|Continuous 50Hz Acquisition| EDGE_SCREEN["Edge Screening & Buffering\n(ESP8266 Auto-Filter)"]
+        EDGE_SCREEN -->|Autonomous Impact Flag| FEAT_EXT["Feature Extraction\n(Impact G, Jerk, Angular Rate)"]
+        
+        MANUAL_BTN["Manual SOS Button\n(Occupant Distress Trigger)"] -.->|Manual Override| SOS_ENGINE
+        CANCEL_BTN["Cancel Button"] -.->|10s Human Override| COUNTDOWN
+    end
+
+    subgraph CLOUD["CLOUD INTELLIGENCE & ORCHESTRATION"]
+        direction TB
+        FEAT_EXT ==>|Telemetry Payload| INGEST["Event Ingestion (FastAPI)"]
+        INGEST --> ML_MODEL["ML Accident Classification\n(Noise Rejection & Severity)"]
+        
+        ML_MODEL -->|Confirmed Accident| COUNTDOWN["10s Countdown Window\n(Audible Buzzer / Visual LED)"]
+        ML_MODEL -->|False Alarm / Pothole| RESET["Auto-Cancel Pending Alert"]
+        
+        COUNTDOWN -->|Timeout: No Cancel| SOS_ENGINE["Autonomous SOS Trigger"]
+    end
+
+    subgraph DISPATCH["MULTI-BEARER DISPATCH & OPERATIONS"]
+        direction TB
+        SOS_ENGINE ==>|Direct GSM UART| SIM["SIM900A Direct SMS / Call\n(Emergency Contacts)"]
+        SOS_ENGINE ==>|Structured Telemetry| ERSS_CAD["ERSS-112 National Dispatch\n& Incident Manager"]
+        ERSS_CAD --> DASH["Responder Operations Dashboard"]
+    end
 ```
 
 ---
@@ -243,7 +262,7 @@ The solution is organized into **11 major modules**.
 ```mermaid
 flowchart TB
 
-    subgraph VEHICLE["🚗 VEHICLE"]
+    subgraph VEHICLE["VEHICLE"]
         IMU["MPU6050\nAccel + Gyro"]
         GPS["GPS"]
         ENV["Temperature / Humidity"]
@@ -262,7 +281,7 @@ flowchart TB
         ESP <--> SIM
     end
 
-    subgraph EDGE["🧠 EDGE PIPELINE"]
+    subgraph EDGE["EDGE PIPELINE"]
         FILTER["Filtering / Sanity Checks"]
         BUFFER["Rolling Buffer"]
         SCREEN["Basic Accident Screening"]
@@ -275,7 +294,7 @@ flowchart TB
 
     ESP --> FILTER
 
-    subgraph ML["🤖 INTELLIGENCE"]
+    subgraph ML["INTELLIGENCE"]
         MODEL["Accident ML Classifier"]
         POLICY["Decision Policy"]
         ADAPT["Continual Learning"]
@@ -289,7 +308,7 @@ flowchart TB
         RL -.-> POLICY
     end
 
-    subgraph SOS["🚨 SOS CONTROL"]
+    subgraph SOS["SOS CONTROL"]
         TIMER1["10s Backend Decision Window"]
         TIMER2["10s Human Cancellation Window"]
         SOSCTRL["SOS State Machine"]
@@ -301,7 +320,7 @@ flowchart TB
     TIMER1 --> SOSCTRL
     TIMER2 --> SOSCTRL
 
-    subgraph COMM["📡 COMMUNICATION"]
+    subgraph COMM["COMMUNICATION"]
         CELL["Cellular"]
         RF["433 MHz Prototype Relay"]
         FUTURE["Future Alternate Bearer"]
@@ -312,7 +331,7 @@ flowchart TB
     SOSCTRL -.-> FUTURE
     CELL --> SIM
 
-    subgraph PLATFORM["☁️ PLATFORM"]
+    subgraph PLATFORM["PLATFORM"]
         API["FastAPI"]
         VALID["Validation"]
         IDEM["Idempotency"]
@@ -338,7 +357,7 @@ flowchart TB
     INCIDENT --> RT
     API --> HEALTH
 
-    subgraph UI["🛰️ RESPONDER OPERATIONS"]
+    subgraph UI["RESPONDER OPERATIONS"]
         DASH["Dashboard"]
         LIST["Incident List"]
         MAP["Map"]
@@ -362,44 +381,26 @@ flowchart TB
 
 The exact agreed flow is:
 
-```text
-CONTINUOUS READINGS
-       ↓
-ESP8266 BASIC CHECKS
-       ↓
-PRELIMINARY ACCIDENT FLAG
-       ↓
-SEND EVENT TO BACKEND
-       ↓
-START TIMER 1 — 10s
-       ↓
-BACKEND FEATURE PREPARATION
-       ↓
-ML ACCIDENT CLASSIFICATION
-       ↓
-┌────────────────────┴────────────────────┐
-│                                         │
-NOT ACCIDENT                              ACCIDENT
-│                                         │
-↓                                         ↓
-Cancel pending SOS                  Severity / hazards
-                                          │
-                                          ▼
-                                  TIMER 2 — 10s
-                                  buzzer + cancel
-                                          │
-                               ┌──────────┴──────────┐
-                               │                     │
-                            CANCEL                TIMEOUT
-                               │                     │
-                               ▼                     ▼
-                             SAFE                   SOS
-                                                      │
-                                                      ▼
-                                             Communication
-                                                      │
-                                                      ▼
-                                            Response workflow
+```mermaid
+flowchart TB
+    A["Continuous Sensor Readings (50Hz)"] --> B["ESP8266 Local Screening"]
+    B --> C["Preliminary Accident Flag"]
+    C --> D["Send Event to Backend & Start Timer 1 (10s)"]
+    D --> E["Backend Feature Prep & ML Classification"]
+    E --> F{"ML Decision"}
+    
+    F -->|Not Accident| G["Cancel Pending SOS (Log & Reset)"]
+    F -->|Accident Confirmed| H["Assess Severity & Hazards"]
+    D -->|Timer 1 Timeout / Offline| H
+    
+    H --> I["Start Timer 2 (10s Buzzer + Cancel Window)"]
+    I --> J{"Occupant Override"}
+    
+    J -->|Cancel Pressed| K["Safe (Stand Down)"]
+    J -->|Timeout Expired| L["Activate Emergency SOS"]
+    
+    L --> M["Multi-Bearer Communication"]
+    M --> N["Emergency Dispatch Workflow"]
 ```
 
 ### Timer 1
@@ -898,20 +899,17 @@ The physical buzzer provides local feedback during the human cancellation phase.
 
 Communication is independent of accident classification.
 
-```text
-                    SOS ACTIVE
-                        │
-                        ▼
-               Communication Manager
-                        │
-        ┌───────────────┼────────────────┐
-        ▼               ▼                ▼
-   Direct SIM       Platform Data      Alternate
-   SMS / Call       Event Path         Transport
-        │               │                │
-        ▼               ▼                ▼
-   Emergency       FastAPI           433 MHz*
-    Contacts       Backend
+```mermaid
+flowchart TB
+    SOS["SOS Active"] --> CM["Communication Manager"]
+    
+    CM --> C1["Direct SIM Path (GSM UART)"]
+    CM --> C2["Platform Data Path (WiFi / Cellular Data)"]
+    CM --> C3["Alternate Relay Path (433 MHz Prototype)"]
+    
+    C1 --> D1["Emergency Contacts (Direct SMS / Voice Call)"]
+    C2 --> D2["FastAPI Backend (Incident Store & ERSS-112)"]
+    C3 --> D3["Nearby Gateway Relay (Mesh / Forwarder)"]
 ```
 
 ## Direct emergency path
@@ -1046,7 +1044,7 @@ SEVERE + supported fire hazard
 → Medical + Police + Fire
 ```
 
-These are prototype policy defaults, not government dispatch rules.
+These are prototype policy defaults, not government dispatch rules. In production, this layer formats and delivers structured incident payloads to national dispatch systems such as India's **ERSS-112** (see [Section 33](#33-production-evolution--erss-112-alignment)).
 
 ---
 
@@ -1099,7 +1097,7 @@ Events
 
 ```text
 ┌────────────────────────────────────────────────────────┐
-│ 🚨 SEVERE ACCIDENT                                    │
+│ [CRITICAL] SEVERE ACCIDENT                             │
 ├────────────────────────────────────────────────────────┤
 │ Vehicle: VEHICLE-001                                  │
 │ Incident: INC-0042                                   │
@@ -1425,7 +1423,7 @@ Police station ≠ available police unit
 Fire station ≠ available fire engine
 ```
 
-For production, the registry can be replaced by an authorized operational integration.
+For production, this mock registry is replaced by an authorized integration with India's **Emergency Response Support System (ERSS-112)** under the Ministry of Home Affairs (MHA), which handles live GIS-based dispatch and CAD tracking of field units (see [Section 33](#33-production-evolution--erss-112-alignment)).
 
 ---
 
@@ -1949,7 +1947,7 @@ A nearby location is not the same as an available emergency response resource, a
 
 ---
 
-# 33. Production Evolution
+# 33. Production Evolution & ERSS-112 Alignment
 
 ## Communication
 
@@ -1988,19 +1986,77 @@ Safety-constrained RL optimization
 
 RL is therefore a **policy optimization direction**, not a replacement for the accident classifier.
 
-## Responder integration
+## Responder Integration & ERSS-112 National Alignment
 
-```text
-Prototype responder registry
-        ↓
-Routing provider
-        ↓
-Operational responder registry
-        ↓
-Authorized emergency-service integration
+For real-world deployment in India, attempting to build a private, parallel nationwide emergency dispatch network (tracking every police vehicle and ambulance) is unrealistic and redundant.
+
+Instead, our platform is architected as an **upstream intelligent incident-generation layer** designed to integrate directly with India's official **Emergency Response Support System (ERSS-112)** under the Ministry of Home Affairs (MHA).
+
+```mermaid
+flowchart TB
+    subgraph VEHICLE["Vehicle IoT Device"]
+        ESP["ESP8266 + Sensors"] --> SCREEN["Edge Screening"]
+    end
+
+    SCREEN --> BACKEND["FastAPI Platform"]
+    BACKEND --> ML["ML Accident Confirmation\n(Severity + Hazards + GPS)"]
+
+    ML --> INCIDENT["Structured Actionable Incident"]
+
+    INCIDENT --> DUAL{"Independent Channels"}
+    DUAL -->|Channel A: Direct Cellular| SIM["SIM900A Direct SMS / Call\n(Emergency Contacts)"]
+    DUAL -->|Channel B: Platform Integration| ERSS["Authorized ERSS-112 Gateway\n(MHA Unified Emergency System)"]
+
+    subgraph ERSS_FLOW["ERSS-112 Operations (MHA)"]
+        ERSS --> PSAP["Public Safety Answering Point (PSAP)"]
+        PSAP --> CAD["GIS-Based Computer-Aided Dispatch (CAD)"]
+        CAD --> POLICE["Police Response"]
+        CAD --> MEDICAL["Health / Ambulance"]
+        CAD --> FIRE["Fire Services"]
+    end
 ```
 
-The rest of the incident architecture should remain stable.
+### 1. The Role of ERSS-112 in IoT Emergency Response
+The Ministry of Home Affairs (MHA) designed ERSS-112 as India's unified emergency response system capable of accepting distress signals across multiple channels—**explicitly including IoT-based signals and automated machine-to-machine inputs**. ERSS-112 handles call taking, GIS-based incident mapping, and computer-aided dispatch (CAD) of the nearest physical emergency response units.
+
+### 2. Our Core Value Proposition: Intelligent Noise Reduction
+ERSS-112 is built to receive emergency signals, but raw sensor spikes would flood the emergency response lines with false alarms. 
+
+Our system acts as the **intelligent filtration and enrichment layer**:
+```text
+Raw Sensor Stream (MPU6050)
+         ↓
+Edge Screening (ESP8266)
+         ↓
+Temporal Feature Extraction (Jerk, Impact G, Rotation, Speed Delta)
+         ↓
+Backend ML Confirmation (Noise rejection / Pothole filter)
+         ↓
+Hazard & Severity Classification (Severe, Medical, Police, Fire)
+         ↓
+Verified, High-Confidence Incident Record
+         ↓
+Forwarded to ERSS-112 PSAP / Dispatch
+```
+
+Instead of sending unverified raw signals, our platform generates a **rich, verified, machine-generated incident packet** containing exact GPS coordinates, impact severity, post-impact stillness metrics, and indicated emergency service requirements (Police / Medical / Fire).
+
+### 3. Redundant Dual-Path Resilience
+The system separates local direct alerts from platform-level emergency routing:
+- **Direct Emergency Path (SIM900A):** Directly dials and texts family/emergency contacts over GSM UART, functioning even if the internet or backend is down.
+- **Platform Emergency Path (ERSS-112):** Uploads full incident telemetry for dispatch coordination through authorized ERSS-112 interfaces.
+
+### 4. Prototype vs. Production Architecture
+
+| Dimension | Hackathon Prototype | Real-World Production Target |
+|---|---|---|
+| **Dispatch Target** | Internal In-Memory / SQLite Responder Registry | Authorized ERSS-112 (MHA) PSAP Interface |
+| **Resource Routing** | Haversine distance computation across mock assets | ERSS-112 GIS Computer-Aided Dispatch (CAD) |
+| **Operator Console** | Responder Operations Web Dashboard | Upstream Telemetry / Complementary PSAP Console |
+| **System Boundary** | End-to-end simulated dispatch | Upstream Intelligent Incident Generation & Telemetry |
+
+> **Jury Positioning Note:**  
+> We do not claim to operate a private government dispatch fleet. Our platform solves the difficult upstream engineering problem: **accurately detecting, validating, and structuring vehicle accident telemetry at the edge and cloud before feeding clean, high-confidence incident records into national emergency infrastructure like ERSS-112.**
 
 ---
 
@@ -2010,58 +2066,29 @@ The system is best understood as an **edge-first, two-stage accident intelligenc
 
 The final control philosophy is:
 
-```text
-             CONTINUOUS SENSOR STREAM
-                        │
-                        ▼
-                 ESP8266 SCREENING
-                        │
-                        ▼
-             PRELIMINARY ACCIDENT FLAG
-                        │
-                        ▼
-                 BACKEND + FEATURES
-                        │
-                        ▼
-                ML ACCIDENT DECISION
-                        │
-              ┌─────────┴─────────┐
-              ▼                   ▼
-        NOT ACCIDENT            ACCIDENT
-              │                   │
-              ▼                   ▼
-        cancel pending       severity / hazards
-        SOS                        │
-                                   ▼
-                             10s human window
-                                   │
-                           ┌───────┴───────┐
-                           ▼               ▼
-                        CANCEL           TIMEOUT
-                           │               │
-                           ▼               ▼
-                         SAFE             SOS
-                                           │
-                                  ┌────────┴────────┐
-                                  ▼                 ▼
-                              SIM SMS/Call     Platform event
-                                  │                 │
-                                  ▼                 ▼
-                             Contacts          Incident Manager
-                                                    │
-                                               Response Policy
-                                                    │
-                                               Responder Router
-                                                    │
-                                           ┌────────┼────────┐
-                                           ▼        ▼        ▼
-                                        Medical   Police    Fire
-                                                    │
-                                                    ▼
-                                              Track response
-                                                    │
-                                                    ▼
-                                              Operations UI
+```mermaid
+flowchart TB
+    S1["Continuous Sensor Stream (50Hz)"] --> S2["ESP8266 Screening & Buffer"]
+    S2 --> S3["Preliminary Accident Flag"]
+    S3 --> S4["Backend Feature Preparation"]
+    S4 --> S5{"ML Accident Decision"}
+    
+    S5 -->|Not Accident| R1["Cancel Pending SOS"]
+    S5 -->|Accident Confirmed| R2["Classify Severity & Hazards"]
+    
+    R2 --> T2["10s Human Cancellation Window"]
+    T2 --> OC{"Occupant Response"}
+    
+    OC -->|Cancel Button| SAFE["Safe (Stand Down)"]
+    OC -->|Countdown Expired| SOS["SOS Triggered"]
+    
+    SOS --> P1["Direct SIM900A SMS / Call (Family Contacts)"]
+    SOS --> P2["Platform Incident Event (FastAPI)"]
+    
+    P2 --> POL["Response Policy & Severity Matching"]
+    POL --> DISP["ERSS-112 CAD / Responder Routing"]
+    DISP --> SVCS["Police / Medical / Fire Units"]
+    SVCS --> OPS["Incident Tracking & Operations UI"]
 ```
 
 ### The architectural insight
@@ -2086,4 +2113,15 @@ That separation is what makes the system resilient and extensible.
 ### The final product statement
 
 > **Detect accidents locally. Confirm them intelligently. Give the occupant a chance to override. Escalate safely when the network is imperfect. Communicate through the available path. Convert the event into a location-aware incident. Route it toward the appropriate response capability. Track what happened next.**
+
+---
+
+### 👥 Team Details
+- **Team ID:** INX-`039`  
+- **Team Name:** π(Pi)  
+- **Team Leader:** Chandan Usman Gani
+- **Members:**
+  - P Venkata Rahul Naidu
+  - T Yugesh
+  - DHANUNJAI REDDY KRISTIPATI
 
